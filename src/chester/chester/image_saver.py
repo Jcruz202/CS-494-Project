@@ -7,12 +7,14 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from datetime import datetime
 
+saveImageTo = '~/CODE/MobileRobotics/Chester/CS-494-Project/images'
+
 class ImageSaver(Node):
     def __init__(self):
         super().__init__('image_saver')
         # declare & read params
         self.declare_parameter('image_topic', '/camera/color/image_raw')
-        self.declare_parameter('output_dir', os.path.expanduser('~/gazebo_images'))
+        self.declare_parameter('output_dir', os.path.expanduser(saveImageTo))
         self.declare_parameter('save_rate_hz', 1.0)
 
         p = self.get_parameters(['image_topic', 'output_dir', 'save_rate_hz'])
