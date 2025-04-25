@@ -7,7 +7,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from datetime import datetime
 
-saveImageTo = '~/CODE/MobileRobotics/Chester/CS-494-Project/images'
+saveImageTo = '~/gazebo_images'
 
 class ImageSaver(Node):
     def __init__(self):
