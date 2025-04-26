@@ -1,35 +1,41 @@
 #!/usr/bin/env python3
 import os
 import cv2
+
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, LaserScan
 from cv_bridge import CvBridge
 from datetime import datetime
 
-saveImageTo = '~/gazebo_images'
+import math
+import numpy as np
+
+# ros2 topics we need
+# /oakd/rgb/preview/camera_info     Intrinsics
+# /oakd/rgb/preview/depth           
+# /oakd/rgb/preview/depth/points    
+# /oakd/rgb/preview/image_raw       RGB
+# /scan
+
 
 class ImageSaver(Node):
     def __init__(self):
-        super().__init__('image_saver')
-        # declare & read params
-        self.declare_parameter('image_topic', '/camera/color/image_raw')
-        self.declare_parameter('output_dir', os.path.expanduser(saveImageTo))
-        self.declare_parameter('save_rate_hz', 1.0)
-
-        p = self.get_parameters(['image_topic', 'output_dir', 'save_rate_hz'])
-        self.topic      = p[0].value
-        self.output_dir = p[1].value
-        self.save_rate  = p[2].value
+        super().__init__('chester')
+        # save images parameters
+        self.topic      = '/oakd/rgb/preview/image_raw'
+        self.output_dir = os.path.expanduser('~/gazebo_images')
+        self.save_rate  = 1.0
 
         os.makedirs(self.output_dir, exist_ok=True)
         self.bridge    = CvBridge()
         self.last_save = self.get_clock().now()
+        
+        # subscribe to the image raw topic and then post the starting logger message
+        self.create_subscription(Image, self.topic, self.takePhoto, 10)
+        self.get_logger().info(f'Listening to {self.topic}, saving @ {self.save_rate}Hz -> {self.output_dir}')
 
-        self.create_subscription(Image, self.topic, self.cb, 10)
-        self.get_logger().info(f'Listening to {self.topic}, saving @ {self.save_rate}Hz → {self.output_dir}')
-
-    def cb(self, msg: Image):
+    def takePhoto(self, msg: Image):
         now = self.get_clock().now()
         elapsed = (now - self.last_save).nanoseconds * 1e-9
         if elapsed < 1.0/self.save_rate:
