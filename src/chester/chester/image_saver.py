@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 import os
 import cv2
+import math
+import numpy as np
 
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image, LaserScan
+from sensor_msgs.msg import Image, LaserScan, CameraInfo
 from cv_bridge import CvBridge
 from datetime import datetime
-
-import math
-import numpy as np
+from ultralytics import YOLO
+from tf2_ros import Buffer, TransformListener
 
 # ros2 topics we need for turtlebot 4
 # /oakd/rgb/preview/camera_info     Intrinsics
@@ -27,32 +28,172 @@ import numpy as np
 class ImageSaver(Node):
     def __init__(self):
         super().__init__('chester')
+
         # save images parameters
-        self.topic      = '/camera/image_raw'
+        self.camera_topic = '/camera/image_raw'
+        self.lidar_topic = '/scan'
+        self.camerainfo_topic = '/camera/camera_info'
         self.output_dir = os.path.expanduser('~/gazebo_images')
         self.save_rate  = 1.0
 
+        # YOLO parameters
+        self.model = YOLO("yolov8n.pt")
+        self.confidence_threshold = 0.5
+
+        # Initalize CV_Bridge
         os.makedirs(self.output_dir, exist_ok=True)
         self.bridge    = CvBridge()
         self.last_save = self.get_clock().now()
+
+        # parameters that get updated as the process goes on
+        self.cameraMatrix = None
+        self.dist_coeffs = None
+        self.image_width = None
+        self.image_height = None
+        self.scan = None
+        self.buffer = Buffer()
+        self.tf_listener = TransformListener(self.buffer, self)
         
         # subscribe to the image raw topic and then post the starting logger message
-        self.create_subscription(Image, self.topic, self.takePhoto, 10)
-        self.get_logger().info(f'Listening to {self.topic}, saving @ {self.save_rate}Hz -> {self.output_dir}')
+        self.create_subscription(Image, self.camera_topic, self.captureView, 10)
+        self.get_logger().info(f'Listening to {self.camera_topic}, saving @ {self.save_rate}Hz -> {self.output_dir}')
+        #subscribe to camera info
+        self.create_subscription(CameraInfo, self.camerainfo_topic, self.camerainfo_callback, 10)
+        self.get_logger().info(f'Listening to {self.camerainfo_topic}, saving @ {self.save_rate}Hz -> {self.output_dir}')
+        # subscribe to lidar
+        self.create_subscription(LaserScan, self.lidar_topic, self.scan_callback, 10)
+        self.get_logger().info(f'Listening to {self.lidar_topic}')
 
-    def takePhoto(self, msg: Image):
+    def camerainfo_callback(self, msg: CameraInfo):
+        if self.cameraMatrix is None:
+            self.cameraMatrix = np.array(msg.k).reshape(3,3)
+            self.dist_coeffs = np.array(msg.d)
+            self.image_width = msg.width
+            self.image_height = msg.height
+            self.get_logger().info('Camera parameters received')
+
+    def scan_callback(self, msg:LaserScan):
+        self.scan = msg
+
+
+    def captureView(self, msg: Image):
         now = self.get_clock().now()
         elapsed = (now - self.last_save).nanoseconds * 1e-9
         if elapsed < 1.0/self.save_rate:
             return
 
-        # convert & save
-        cv_img = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        # convert & save what we see right in front of us
+        try:
+            cv_img = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        except Exception as e:
+            self.get_logger().warn(f'Error saving image {e}')
+        
         ts = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
         fn = os.path.join(self.output_dir, f'img_{ts}.jpg')
         cv2.imwrite(fn, cv_img)
         self.get_logger().info(f'Saved {fn}')
+
+        if self.scan is None:
+            self.get_logger().warn(f'No scan data yet')
+            return
+        
+        if self.cameraMatrix is None:
+            self.get_logger().warn(f'No camera info data yet')
+            return
+        
+        # if we got to this point, we have what we need to do calculations about where the user is information
+
+        found_user = False
+
+        results = self.model(cv_img, conf=self.confidence_threshold)
+        if len(results[0].boxes) > 0:
+            markedImage = cv_img.copy()
+            for box in results[0].boxes:
+                class_id = int(box.cls.item())
+                class_name = results[0].names[class_id]
+                confidence = float(box.conf.item())
+
+                # if class_name == "person":
+                # found_user = True
+
+                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+
+                center_x = (x1 + x2) // 2
+                center_y = (y1 + y2) // 2
+
+                distance = self.calculate_distance(center_x, center_y)
+
+                cv2.rectangle(markedImage, (x1, y1), (x2, y2), (0,255, 0), 2)
+
+                if distance is not None:
+                    label = f"{class_name}: {confidence:.2f}, Distance: {distance:.2f}"
+                    self.get_logger().info(f"Detected {class_name} at distance: {distance:.2f}")
+                else:
+                    label = f"{class_name}: {confidence:.2f}, Distance: Unknown"
+                    self.get_logger().info(f"Detected {class_name}")
+
+                (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+                cv2.rectangle(markedImage, (x1, y1 - label_height - 10), (x1 + label_width, y1), (0, 255, 0), -1)
+                cv2.putText(markedImage, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 2)
+                
+                if found_user:
+                    fn = os.path.join(self.output_dir, f'img_{self.last_save}_{class_name}_detected.jpg')
+                    cv2.imwrite(fn, markedImage)
+                    self.get_logger().info(f"Saved {class_name} detection image to {fn}")
+
+        else:
+            self.get_logger().warn(f'No Objects found')
+        
+
         self.last_save = now
+
+    def calculate_distance(self, x, y):
+        if self.scan is None or self.cameraMatrix is None:
+            return None
+        
+        fx = self.cameraMatrix[0,0]
+        cx = self.cameraMatrix[0,2]
+
+        horFOV = 2 * math.atan2(self.image_width / 2, fx)
+
+        normX = (x - cx) / fx
+        angle = math.atan2(normX, 1.0)
+
+        lidar_angle = -angle
+
+        angle_min = self.scan.angle_min
+        angle_max = self.scan.angle_max
+        angle_inc = self.scan.angle_increment
+
+        if lidar_angle < angle_min or lidar_angle > angle_max:
+            return None
+        
+        index = round((lidar_angle - angle_min) / angle_inc)
+
+        if index < 0 or index >= len(self.scan.ranges):
+            return None
+        
+        distance = self.scan.ranges[index]
+
+        if math.isnan(distance) or distance < self.scan.range_min or distance > self.scan.range_max:
+            window_size = 5
+            valid_distances = []
+
+            for i in range(max(0, index - window_size), min(len(self.scan.ranges), index + window_size + 1)):
+                d = self.scan.ranges[i]
+
+                if not math.isnan(d) and d >= self.scan.range_min and d <= self.scan.range_max:
+                    valid_distances.append(d)
+
+            if valid_distances:
+                distance = sorted(valid_distances)[len(valid_distances) // 2]
+            else:
+                return None
+        return distance
+
+
+
+
 
 def main(args=None):
     rclpy.init(args=args)

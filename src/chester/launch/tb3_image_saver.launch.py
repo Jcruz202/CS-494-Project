@@ -7,7 +7,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     gz_pkg   = get_package_share_directory('turtlebot3_gazebo')
-    gz_launch = os.path.join(gz_pkg, 'launch', 'turtlebot3_world.launch.py')
+    gz_launch = os.path.join(gz_pkg, 'launch', 'turtlebot3_house.launch.py')
 
     return LaunchDescription([
         # 1) start Ignition Gazebo + sim-hardware nodes
