@@ -6,8 +6,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    gz_pkg   = get_package_share_directory('turtlebot4_gz_bringup')
-    gz_launch = os.path.join(gz_pkg, 'launch', 'turtlebot4_gz.launch.py')
+    gz_pkg   = get_package_share_directory('turtlebot3_gazebo')
+    gz_launch = os.path.join(gz_pkg, 'launch', 'turtlebot3_world.launch.py')
 
     return LaunchDescription([
         # 1) start Ignition Gazebo + sim-hardware nodes
@@ -23,8 +23,8 @@ def generate_launch_description():
             name='image_saver',
             output='screen',
             parameters=[{
-                'image_topic':     '/oakd/rgb/preview/image_raw',
-                'camera_info_topic':'/oakd/rgb/preview/camera_info',
+                'image_topic':     '/camera/image_raw',
+                'camera_info_topic':'/camera/camera_info',
                 'output_dir':      os.path.expanduser('~/gazebo_images'),
                 'save_rate_hz':    1.0
             }]

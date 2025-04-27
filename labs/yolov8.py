@@ -2,7 +2,7 @@ from ultralytics import YOLO
 
 model = YOLO("src/chester/chester/yolov8n.pt")
 
-results = model.predict("/home/emily/gazebo_images/")
+results = model.predict("/home/emend7/gazebo_images/")
 
 result = results[0]
 

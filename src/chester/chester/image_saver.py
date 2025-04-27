@@ -11,11 +11,16 @@ from datetime import datetime
 import math
 import numpy as np
 
-# ros2 topics we need
+# ros2 topics we need for turtlebot 4
 # /oakd/rgb/preview/camera_info     Intrinsics
 # /oakd/rgb/preview/depth           
 # /oakd/rgb/preview/depth/points    
 # /oakd/rgb/preview/image_raw       RGB
+# /scan
+
+#ros2 topics we need for turtlebot 3
+# /camera/camera_info
+# /camera/image_raw
 # /scan
 
 
@@ -23,7 +28,7 @@ class ImageSaver(Node):
     def __init__(self):
         super().__init__('chester')
         # save images parameters
-        self.topic      = '/oakd/rgb/preview/image_raw'
+        self.topic      = '/camera/image_raw'
         self.output_dir = os.path.expanduser('~/gazebo_images')
         self.save_rate  = 1.0
 

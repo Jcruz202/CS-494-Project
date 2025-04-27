@@ -1,17 +1,15 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
-<package format="3">
+<package format="2">
   <name>chester</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="emend7@uic.edu">emily</maintainer>
   <license>TODO: License declaration</license>
 
-
   <exec_depend>rclpy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>cv_bridge</exec_depend>
-  <exec_depend>turtlebot4_gazebo</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
   <depend>visualization_msgs</depend>
   <depend>geometry_msgs</depend>
@@ -21,6 +19,8 @@
   <depend>turtlebot3_description</depend>
   <exec_depend>gazebo_ros_pkgs</exec_depend>
   <exec_depend>ros2launch</exec_depend>
+  <exec_depend>teleop_twist_keyboard</exec_depend>
+  
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
