@@ -12,7 +12,7 @@ def generate_launch_description():
     chester_dir = get_package_share_directory('chester')
     
     # Get the TURTLEBOT3_MODEL environment variable
-    turtlebot3_model = os.environ.get('TURTLEBOT3_MODEL', 'waffle')
+    turtlebot3_model = os.environ.get('TURTLEBOT3_MODEL', 'waffle')  # Default to waffle if not set
     
     # Launch configuration variables
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
@@ -59,6 +59,15 @@ def generate_launch_description():
             '-file', urdf_file],
         output='screen')
     
+    # Start a node to publish LiDAR scan visualization
+    start_rviz_cmd = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        arguments=['-d', os.path.join(get_package_share_directory('turtlebot3_gazebo'), 'rviz', 'tb3_gazebo.rviz')],
+        output='screen'
+    )
+    
     # Create the launch description and populate
     ld = LaunchDescription()
     
@@ -68,5 +77,6 @@ def generate_launch_description():
     ld.add_action(declare_y_pose_cmd)
     ld.add_action(start_robot_state_publisher_cmd)
     ld.add_action(start_gazebo_spawner_cmd)
+    ld.add_action(start_rviz_cmd)  # Added RViz to visualize sensor data
     
     return ld
