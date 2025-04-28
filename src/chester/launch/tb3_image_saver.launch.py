@@ -6,7 +6,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    gz_pkg   = get_package_share_directory('turtlebot3_gazebo')
+    gz_pkg = get_package_share_directory('turtlebot3_gazebo')
     gz_launch = os.path.join(gz_pkg, 'launch', 'turtlebot3_house.launch.py')
 
     return LaunchDescription([
@@ -16,17 +16,17 @@ def generate_launch_description():
             launch_arguments={'use_sim_time':'true'}.items()
         ),
 
-        # 2) your image_saver node (same as before)
+        # 2) your image_saver node - changed to use the Python script directly
         Node(
             package='chester',
-            executable='image_saver',
+            executable='image_saver.py',  # This should match the script name
             name='image_saver',
             output='screen',
             parameters=[{
-                'image_topic':     '/camera/image_raw',
-                'camera_info_topic':'/camera/camera_info',
-                'output_dir':      os.path.expanduser('~/gazebo_images'),
-                'save_rate_hz':    1.0
+                'image_topic': '/camera/image_raw',
+                'camera_info_topic': '/camera/camera_info',
+                'output_dir': os.path.expanduser('~/gazebo_images'),
+                'save_rate_hz': 1.0
             }]
         ),
 
