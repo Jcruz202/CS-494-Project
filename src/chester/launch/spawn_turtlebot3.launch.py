@@ -11,6 +11,9 @@ def generate_launch_description():
     # Get the launch directory
     chester_dir = get_package_share_directory('chester')
     
+    # Get the TURTLEBOT3_MODEL environment variable
+    turtlebot3_model = os.environ.get('TURTLEBOT3_MODEL', 'waffle')
+    
     # Launch configuration variables
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     x_pose = LaunchConfiguration('x_pose', default='0.0')
@@ -33,7 +36,7 @@ def generate_launch_description():
     # Get URDF via the xacro command
     urdf_file = os.path.join(
         get_package_share_directory('turtlebot3_description'),
-        'urdf', 'turtlebot3_burger.urdf')
+        'urdf', f'turtlebot3_{turtlebot3_model}.urdf')
     
     # Create the robot state publisher node
     start_robot_state_publisher_cmd = Node(
