@@ -105,7 +105,7 @@ class ImageSaver(Node):
 
         found_user = False
 
-        results = self.model(cv_img, conf=self.confidence_threshold)
+        results = self.model.predict(cv_img)
         if len(results[0].boxes) > 0:
             markedImage = cv_img.copy()
             for box in results[0].boxes:
@@ -149,46 +149,78 @@ class ImageSaver(Node):
 
     def calculate_distance(self, x, y):
         if self.scan is None or self.cameraMatrix is None:
+            self.get_logger().warn(f"Missing scan or camera matrix")
+            return None
+        
+        if x < 0 or x >= self.image_width or y < 0 or y >= self.image_height:
+            self.get_logger().warn(f"Point {x}, {y} is outside image bounds")
             return None
         
         fx = self.cameraMatrix[0,0]
         cx = self.cameraMatrix[0,2]
 
-        horFOV = 2 * math.atan2(self.image_width / 2, fx)
+        # self.get_logger().warn(f"Camera Matrix: fx={fx} cx={cx} ")
+        # self.get_logger().warn(f"Image Dimensions: {self.image_width}x{self.image_height}")
+
+        # horFOV = 2 * math.atan2(self.image_width / 2, fx)
+
+        # self.get_logger().info(f"HORFOV: {horFOV * 180 / math.pi} degrees")
 
         normX = (x - cx) / fx
         angle = math.atan2(normX, 1.0)
 
-        lidar_angle = -angle
-
         angle_min = self.scan.angle_min
         angle_max = self.scan.angle_max
         angle_inc = self.scan.angle_increment
+        num_points = len(self.scan.ranges)
+
+        # self.get_logger().info(f"min={angle_min} max={angle_max} inc={angle_inc}")
+
+        lidar_angle = -angle
+
+        while lidar_angle < angle_min:
+            lidar_angle += 2 * math.pi
+
+        while lidar_angle > angle_max:
+            lidar_angle += 2 * math.pi
 
         if lidar_angle < angle_min or lidar_angle > angle_max:
+            self.get_logger().info(f"Angle={lidar_angle} is outside range")
             return None
         
         index = round((lidar_angle - angle_min) / angle_inc)
 
-        if index < 0 or index >= len(self.scan.ranges):
+        while index < 0:
+            index += num_points
+
+        while index >= num_points:
+            index -= num_points
+
+        if index < 0 or index >= num_points:
+            self.get_logger().info(f"index={index} numofpoints={num_points}")
             return None
         
         distance = self.scan.ranges[index]
 
         if math.isnan(distance) or distance < self.scan.range_min or distance > self.scan.range_max:
-            window_size = 5
+            self.get_logger().info(f"Direct measurements invalid, trying nearby points")
+            window_size = 15
             valid_distances = []
 
-            for i in range(max(0, index - window_size), min(len(self.scan.ranges), index + window_size + 1)):
-                d = self.scan.ranges[i]
+            for i in range(-window_size, window_size+1):
+                idx = (index + i) % num_points
+                d = self.scan.ranges[idx]
 
-                if not math.isnan(d) and d >= self.scan.range_min and d <= self.scan.range_max:
+                if not math.isnan(d) and not math.isinf(d) and d >= self.scan.range_min and d <= self.scan.range_max:
                     valid_distances.append(d)
 
             if valid_distances:
                 distance = sorted(valid_distances)[len(valid_distances) // 2]
+                self.get_logger().info(f"found valid distance: {distance:.2f}")
             else:
+                self.get_logger().info(f"no valid distance")
                 return None
+        self.get_logger().info(f"final distance: {distance:.2f}")
         return distance
 
 
