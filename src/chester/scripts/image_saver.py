@@ -110,14 +110,6 @@ class ImageSaver(Node):
 
         found_user = False
 
-        # publish message
-        human_pos_msg = HumanPos()
-        human_pos_msg.x = 0.0
-        human_pos_msg.y = 0.0
-        human_pos_msg.distance = 0.0
-        human_pos_msg.confidence = 0.0
-        self.pub.publish(human_pos_msg)
-
         results = self.model.predict(cv_img)
         if len(results[0].boxes) > 0:
             markedImage = cv_img.copy()
