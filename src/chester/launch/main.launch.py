@@ -8,18 +8,24 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 def generate_launch_description():
     # Get the launch directory
     chester_dir = get_package_share_directory('chester')
-    tb3_gazebo_dir = get_package_share_directory('turtlebot3_gazebo')
     
     # Include the empty world launch file (which also spawns TurtleBot3)
     empty_world_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(tb3_gazebo_dir, 'launch', 'empty_world.launch.py')
+            os.path.join(chester_dir, 'launch', 'empty_world.launch.py')
+        )
+    )
+    
+    # Include the TurtleBot3 spawn launch file
+    turtlebot3_spawn_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(chester_dir, 'launch', 'spawn_turtlebot3.launch.py')
         )
     )
     
     # Delay actor spawn to ensure Gazebo is fully loaded
     actor_spawn_with_delay = TimerAction(
-        period=3.0,  # 5 second delay
+        period=5.0,  # 5 second delay
         actions=[
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -29,7 +35,21 @@ def generate_launch_description():
         ]
     )
     
+    # Include the sensor visualization launch file
+    sensor_visualization_launch = TimerAction(
+        period=2.0,  # 2 second delay
+        actions=[
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    os.path.join(chester_dir, 'launch', 'sensor_visualization.launch.py')
+                )
+            )
+        ]
+    )
+    
     return LaunchDescription([
         empty_world_launch,
+        turtlebot3_spawn_launch,
         actor_spawn_with_delay,
+        sensor_visualization_launch,
     ])
