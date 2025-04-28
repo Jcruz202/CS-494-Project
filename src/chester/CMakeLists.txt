@@ -17,13 +17,33 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 find_package(gazebo_ros REQUIRED)
+
+# Generate interfaces
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/HumanPos.msg"
+  DEPENDENCIES std_msgs
+)
+
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+
+# Install Python executables
+install(PROGRAMS
+  scripts/image_saver.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # Install launch files
 install(DIRECTORY
-  launch
-  DESTINATION share/${PROJECT_NAME}
+  launch/
+  DESTINATION share/${PROJECT_NAME}/launch
 )
 
+ament_export_dependencies(rosidl_default_runtime)
 ament_package()

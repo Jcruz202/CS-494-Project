@@ -12,6 +12,8 @@ from datetime import datetime
 from ultralytics import YOLO
 from tf2_ros import Buffer, TransformListener
 
+from chester.msg import HumanPos
+
 # ros2 topics we need for turtlebot 4
 # /oakd/rgb/preview/camera_info     Intrinsics
 # /oakd/rgb/preview/depth           
@@ -64,6 +66,9 @@ class ImageSaver(Node):
         self.create_subscription(LaserScan, self.lidar_topic, self.scan_callback, 10)
         self.get_logger().info(f'Listening to {self.lidar_topic}')
 
+        #publish 
+        self.pub = self.create_publisher(HumanPos, 'chester/human_position', 10)
+
     def camerainfo_callback(self, msg: CameraInfo):
         if self.cameraMatrix is None:
             self.cameraMatrix = np.array(msg.k).reshape(3,3)
@@ -105,6 +110,14 @@ class ImageSaver(Node):
 
         found_user = False
 
+        # publish message
+        human_pos_msg = HumanPos()
+        human_pos_msg.x = 0.0
+        human_pos_msg.y = 0.0
+        human_pos_msg.distance = 0.0
+        human_pos_msg.confidence = 0.0
+        self.pub.publish(human_pos_msg)
+
         results = self.model.predict(cv_img)
         if len(results[0].boxes) > 0:
             markedImage = cv_img.copy()
@@ -140,6 +153,16 @@ class ImageSaver(Node):
                     fn = os.path.join(self.output_dir, f'img_{self.last_save}_{class_name}_detected.jpg')
                     cv2.imwrite(fn, markedImage)
                     self.get_logger().info(f"Saved {class_name} detection image to {fn}")
+
+                    # publish message
+                    human_pos_msg = HumanPos()
+                    human_pos_msg.x = float(person_x)
+                    human_pos_msg.y = float(person_y)
+                    human_pos_msg.distance = float(distance)
+                    human_pos_msg.confidence = confidence
+
+                    self.pub.publish(human_pos_msg)
+                    self.get_logger().warn(f'Published to topic')
 
         else:
             self.get_logger().warn(f'No Objects found')
