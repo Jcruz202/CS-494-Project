@@ -14,7 +14,7 @@ Node Image_Saver will publish to chester/human_position
 At the project root:
 ```
 export TURTLEBOT3_MODEL=waffle_pi
-source /opt/ros/foxy.setup.bash
+source /opt/ros/foxy/setup.bash
 colcon build
 source install/setup.bash
 ros2 launch chester tb4_image_saver.launch.py

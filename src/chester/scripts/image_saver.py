@@ -131,17 +131,17 @@ class ImageSaver(Node):
                     cv2.rectangle(markedImage, (x1, y1), (x2, y2), (0,255, 0), 2)
 
                     if distance is not None:
-                        label = f"{class_name}: {confidence:.2f}, Distance: {distance:.2f}"
+                        # label = f"{class_name}: {confidence:.2f}, Distance: {distance:.2f}"
                         self.get_logger().info(f"Detected {class_name} at distance: {distance:.2f} Position Relative of Robot: ({person_x}, {person_y})")
                     else:
-                        label = f"{class_name}: {confidence:.2f}, Distance: Unknown"
+                        # label = f"{class_name}: {confidence:.2f}, Distance: Unknown"
                         self.get_logger().info(f"Detected {class_name}")
 
-                (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
-                cv2.rectangle(markedImage, (x1, y1 - label_height - 10), (x1 + label_width, y1), (0, 255, 0), -1)
-                cv2.putText(markedImage, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 2)
+                # (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+                # cv2.rectangle(markedImage, (x1, y1), (x2, y2), (0,255, 0), 2)
+                # cv2.putText(markedImage, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 2)
                 
-                if found_user:
+                if found_user and distance is not None:
                     fn = os.path.join(self.output_dir, f'img_{self.last_save}_{class_name}_detected.jpg')
                     cv2.imwrite(fn, markedImage)
                     self.get_logger().info(f"Saved {class_name} detection image to {fn}")
@@ -197,11 +197,11 @@ class ImageSaver(Node):
             lidar_angle += 2 * math.pi
 
         while lidar_angle > angle_max:
-            lidar_angle += 2 * math.pi
+            lidar_angle -= 2 * math.pi
 
         if lidar_angle < angle_min or lidar_angle > angle_max:
             self.get_logger().info(f"Angle={lidar_angle} is outside range")
-            return None
+            return None, None, None
         
         index = int(round((lidar_angle - angle_min) / angle_inc))
 
@@ -213,7 +213,7 @@ class ImageSaver(Node):
 
         if index < 0 or index >= num_points:
             self.get_logger().info(f"index={index} numofpoints={num_points}")
-            return None
+            return None, None, None
         
         distance = self.scan.ranges[index]
 
