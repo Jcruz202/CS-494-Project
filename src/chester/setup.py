@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'image_saver = chester.image_saver:main',
+            'move_chester = chester.move_chester:main'
         ],
     },
 )

@@ -36,6 +36,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   scripts/image_saver.py
+  scripts/move_chester.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
