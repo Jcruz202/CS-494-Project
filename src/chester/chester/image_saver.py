@@ -113,24 +113,24 @@ class ImageSaver(Node):
                 class_name = results[0].names[class_id]
                 confidence = float(box.conf.item())
 
-                # if class_name == "person":
-                # found_user = True
+                if class_name == "person":
+                    found_user = True
 
-                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
 
-                center_x = (x1 + x2) // 2
-                center_y = (y1 + y2) // 2
+                    center_x = (x1 + x2) // 2
+                    center_y = (y1 + y2) // 2
 
-                distance = self.calculate_distance(center_x, center_y)
+                    distance, person_x, person_y = self.calculate_distance_x_y(center_x, center_y)
 
-                cv2.rectangle(markedImage, (x1, y1), (x2, y2), (0,255, 0), 2)
+                    cv2.rectangle(markedImage, (x1, y1), (x2, y2), (0,255, 0), 2)
 
-                if distance is not None:
-                    label = f"{class_name}: {confidence:.2f}, Distance: {distance:.2f}"
-                    self.get_logger().info(f"Detected {class_name} at distance: {distance:.2f}")
-                else:
-                    label = f"{class_name}: {confidence:.2f}, Distance: Unknown"
-                    self.get_logger().info(f"Detected {class_name}")
+                    if distance is not None:
+                        label = f"{class_name}: {confidence:.2f}, Distance: {distance:.2f}"
+                        self.get_logger().info(f"Detected {class_name} at distance: {distance:.2f} Position Relative of Robot: ({person_x}, {person_y})")
+                    else:
+                        label = f"{class_name}: {confidence:.2f}, Distance: Unknown"
+                        self.get_logger().info(f"Detected {class_name}")
 
                 (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
                 cv2.rectangle(markedImage, (x1, y1 - label_height - 10), (x1 + label_width, y1), (0, 255, 0), -1)
@@ -147,14 +147,14 @@ class ImageSaver(Node):
 
         self.last_save = now
 
-    def calculate_distance(self, x, y):
+    def calculate_distance_x_y(self, x, y):
         if self.scan is None or self.cameraMatrix is None:
             self.get_logger().warn(f"Missing scan or camera matrix")
-            return None
+            return None, None, None
         
         if x < 0 or x >= self.image_width or y < 0 or y >= self.image_height:
             self.get_logger().warn(f"Point {x}, {y} is outside image bounds")
-            return None
+            return None, None, None
         
         fx = self.cameraMatrix[0,0]
         cx = self.cameraMatrix[0,2]
@@ -188,7 +188,7 @@ class ImageSaver(Node):
             self.get_logger().info(f"Angle={lidar_angle} is outside range")
             return None
         
-        index = round((lidar_angle - angle_min) / angle_inc)
+        index = int(round((lidar_angle - angle_min) / angle_inc))
 
         while index < 0:
             index += num_points
@@ -206,6 +206,7 @@ class ImageSaver(Node):
             self.get_logger().info(f"Direct measurements invalid, trying nearby points")
             window_size = 15
             valid_distances = []
+            valid_indicies = []
 
             for i in range(-window_size, window_size+1):
                 idx = (index + i) % num_points
@@ -213,15 +214,25 @@ class ImageSaver(Node):
 
                 if not math.isnan(d) and not math.isinf(d) and d >= self.scan.range_min and d <= self.scan.range_max:
                     valid_distances.append(d)
+                    valid_indicies.append(idx)
 
             if valid_distances:
-                distance = sorted(valid_distances)[len(valid_distances) // 2]
+                median_idx = valid_distances.index(sorted(valid_distances)[len(valid_distances) // 2])
+                distance = valid_distances[median_idx]
+                index = valid_indicies[median_idx]
                 self.get_logger().info(f"found valid distance: {distance:.2f}")
+
+                lidar_angle = angle_min + index * angle_inc
+                if lidar_angle > math.pi:
+                    lidar_angle -= 2 * math.pi
             else:
                 self.get_logger().info(f"no valid distance")
-                return None
-        self.get_logger().info(f"final distance: {distance:.2f}")
-        return distance
+                return None, None, None
+        x_pos = distance * math.cos(lidar_angle)
+        y_pos = distance * math.sin(lidar_angle)
+
+        self.get_logger().info(f"final distance: {distance:.2f}. x={x_pos} y={y_pos}")
+        return distance, x_pos, y_pos
 
 
 
