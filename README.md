@@ -18,3 +18,5 @@ source install/setup.bash
 ros2 launch chester tb4_image_saver.launch.py
 ros2 run turtlebot3_teleop teleop_keyboard
 ```
+
+Node Image_Saver will publish to chester/human_position
