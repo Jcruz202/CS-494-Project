@@ -42,7 +42,7 @@ Step 3: In a different terminal run:
 export TURTLEBOT3_MODEL=waffle_pi
 cd <into chester workspace>
 source /opt/ros/foxy.setup.bash
-colcon bui;d
+colcon build
 source install/setup.bash
 ros2 run chester move_chester.py
 ```
