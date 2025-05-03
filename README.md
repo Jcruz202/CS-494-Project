@@ -17,7 +17,7 @@ export TURTLEBOT3_MODEL=waffle_pi
 source /opt/ros/foxy/setup.bash
 colcon build
 source install/setup.bash
-ros2 launch chester tb4_image_saver.launch.py
+ros2 launch chester tb3_image_saver.launch.py
 ```
 
 Step 1: Run the Gazebo Simulation
