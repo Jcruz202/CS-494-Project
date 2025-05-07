@@ -12,32 +12,24 @@ Make sure you have installed all the Turtlebot 3 packages
 Node Image_Saver will publish to chester/human_position
 
 At the project root:
-```
-export TURTLEBOT3_MODEL=waffle_pi
-source /opt/ros/foxy/setup.bash
-colcon build
-source install/setup.bash
-ros2 launch chester tb3_image_saver.launch.py
-```
 
 Step 1: Run the Gazebo Simulation
-```
-export TURTLEBOT3_MODEL=waffle_pi
-source /opt/ros/foxy/setup.bash
-ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
-```
 
-Step 2: In a different terminal run:
 ```
-cd <into chester workspace>
 export TURTLEBOT3_MODEL=waffle_pi
 source /opt/ros/foxy/setup.bash
 colcon build
 source install/setup.bash
-ros2 run chester image_saver.py
+ros2 launch chester main.launch.py
 ```
 
-Step 3: In a different terminal run:
+You should see a gazebo window open now
+1. In the gazebo window, you can move the objects around. We recommend moving the house simulation to the left to give the turtlebot more room. This is a good time to practice moving the model around.
+
+2. Insert a human model from the gazebo window, there are many predefine human models that gazebo gives you. We use the standing_person in the demo.
+3. Place the human in front of the turtlebot within the FOV.
+
+Step 2: In a different terminal run:
 ```
 export TURTLEBOT3_MODEL=waffle_pi
 cd <into chester workspace>
@@ -47,5 +39,5 @@ source install/setup.bash
 ros2 run chester move_chester.py
 ```
 
-Step 4:
-Pray that the turtlebot is moving
+4. move the human periodically (staying within the field of view)
+Note: moving too fast will cause the turtlebot to lose view of the human.
