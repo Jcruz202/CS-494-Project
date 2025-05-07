@@ -16,13 +16,13 @@ class HumanFollower(Node):
         self.target_distance = 1.0  # Target distance to maintain (meters)
         self.distance_tolerance = 0.1  # Tolerance range for distance (meters)
         self.min_confidence = 0.4  # Minimum confidence to consider a human detection valid
-        self.obstacle_distance_threshold = 1.0  # Minimum distance to obstacles (meters)
+        self.obstacle_distance_threshold = 1.0 # Minimum distance to obstacles (meters)
         
         # Control parameters
-        self.linear_speed = 0.2  # Maximum linear speed (m/s)
-        self.angular_speed = 0.5  # Maximum angular speed (rad/s)
-        self.k_linear = 0.3  # Linear speed proportional gain
-        self.k_angular = 0.5  # Angular speed proportional gain
+        self.linear_speed = 0.1  # Maximum linear speed (m/s)
+        self.angular_speed = 0.25  # Maximum angular speed (rad/s)
+        self.k_linear = 0.15  # Linear speed proportional gain
+        self.k_angular = 0.25  # Angular speed proportional gain
         self.k_obstacle = 1.0  # Obstacle avoidance gain
         
         # State variables
@@ -206,16 +206,9 @@ class HumanFollower(Node):
         
         # If no valid detection, check if we can use memory
         if not valid_detection:
-            if not self.should_use_memory():
-                self.get_logger().warn('No valid human detection, stopping')
-                self.cmd_vel_pub.publish(cmd_vel)
-                return
-            else:
-                # Use the last valid position
-                self.get_logger().info('Using last valid position for navigation')
-                x_pos = self.last_valid_x
-                y_pos = self.last_valid_y
-                distance = self.last_valid_distance
+            self.get_logger().warn('No valid human detection, stopping')
+            self.cmd_vel_pub.publish(cmd_vel)
+            return
         else:
             # Use current position
             x_pos = self.current_x
@@ -243,10 +236,6 @@ class HumanFollower(Node):
         repulsive_angle, repulsive_magnitude = self.detect_obstacles()
         
         if repulsive_angle is not None and repulsive_magnitude is not None:
-            # Convert repulsive angle and magnitude to x,y components
-            repulsive_x = repulsive_magnitude * math.cos(repulsive_angle)
-            repulsive_y = repulsive_magnitude * math.sin(repulsive_angle)
-            
             # Apply repulsive force to velocity commands
             # For angular velocity, we want to turn away from the obstacle
             obstacle_angle = self.normalize_angle(repulsive_angle - math.pi/2)  # 90 degrees from repulsive direction

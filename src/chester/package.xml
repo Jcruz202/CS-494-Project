@@ -27,6 +27,7 @@
   <exec_depend>gazebo_ros_pkgs</exec_depend>
   <exec_depend>ros2launch</exec_depend>
   <exec_depend>teleop_twist_keyboard</exec_depend>
+  <depend>gazebo_msgs</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

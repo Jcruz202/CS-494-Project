@@ -37,6 +37,7 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/image_saver.py
   scripts/move_chester.py
+  scripts/chester_logger.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
