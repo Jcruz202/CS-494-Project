@@ -63,13 +63,14 @@ print(f"Max error : {max_error:.2f} m")
 
 
 plt.figure()
-plt.scatter(df_clean['adj_chester_x'] , df_clean['adj_chester_y'],marker='o')
-plt.scatter(df_clean['Human_X'] , df_clean['Human_Y'],marker='o')
+plt.scatter(df_clean['adj_chester_x'] , df_clean['adj_chester_y'], marker='o', label='Detected Position')
+plt.scatter(df_clean['Human_X'] , df_clean['Human_Y'], marker='o', label='Actual Position')
 plt.xlabel('X')
 plt.ylabel('Y')
-plt.title('Detected (X,Y) Vs. Real (X,Y)')
+plt.title('Actual Human Position vs. Detected Human Position')
+plt.legend()
 plt.grid(True)
-
+plt.tight_layout()
 # Save to a PNG
 plt.savefig('detection.png', dpi=300)
 
